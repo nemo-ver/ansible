@@ -1,0 +1,61 @@
+---
+- hosts: test-node1
+  become: true
+  tasks:
+    - name: Turn off swap
+      command: swapoff -a
+
+    - name: Comment out swap is /etc/fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^.*\sswap\s.*$'
+        replace: '# &'
+
+    - name: Add Google Cloud apt key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add Kubernetes APT repository
+      apt_repository:
+        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+
+    - name: Install docker, kubelet, kubeadm, kubectl and kubernetes-cni
+      apt:
+        update_cache: yes
+        state: present
+        pkg:  [ 'docker.io', 'kubelet', 'kubeadm', 'kubectl', 'kubernetes-cni']
+
+    - name: Initialize the Kubernetes cluster
+      shell: kubeadm init > /tmp/kubeadm_init_output
+
+    - name: Create .kube directory in user's home directory
+      file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+    
+    - name: Copy admin.conf to .kube directory and change ownership
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        remote_src: yes
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_gid }}"
+    
+    - name: Wait for it
+      pause:
+        minutes: 1
+
+    - name: Apply Calico YAML for networking
+      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+    - name: Extract kubeadm join command from init output
+      shell: "sed -n '/kubeadm join/,$p' /tmp/kubeadm_init_output > /tmp/kubeadm_join"
+
+    - name: Copy file with kubeadm join command to ansible hosts
+      fetch:
+        src: /tmp/kubeadm_join
+        dest: "{{ playbook_dir }}/joinfiles/{{ inventory_hostname }}_kubeadm_join"
+        flat: yes
+        delegate_to: localhost

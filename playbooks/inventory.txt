@@ -1,0 +1,7 @@
+[kuber]
+master-node ansible_host=192.168.10.73 ansible_connection=ssh ansible_user=nemo
+worker-node1 ansible_host=192.168.10.74 ansible_connection=ssh ansible_user=nemo
+worker-node2 ansible_host=192.168.2.135 ansible_connection=ssh ansible_user=nemo
+
+[test]
+test-node ansible_host=192.168.2.137 ansible_connection=ssh ansible_user=nemo
