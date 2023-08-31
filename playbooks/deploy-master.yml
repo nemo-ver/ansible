@@ -56,6 +56,6 @@
     - name: Copy file with kubeadm join command to ansible hosts
       fetch:
         src: /tmp/kubeadm_join
-        dest: "{{ playbook_dir }}/joinfiles/{{ inventory_hostname }}_kubeadm_join"
+        dest: "{{ playbook_dir }}/joinfiles/kubeadm_join.sh"
         flat: yes
         delegate_to: localhost

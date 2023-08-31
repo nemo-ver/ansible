@@ -1,0 +1,32 @@
+---
+- hosts: test-node2
+  become: yes
+  tasks:
+    
+    - name: Turn off swap
+      command: swapoff -a
+
+    - name: Comment out swap in /etc/fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^.*\sswap\s.*$'
+        replace: "# &"
+      
+    - name: Add Google Cloud apt key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add Kubernetes APT repository
+      apt_repository:
+        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+
+    - name: Install docker, kubelet, kubeadm, kubectl and kubernetes-cni
+      apt:
+        update_cache: yes
+        state: present
+        pkg:  [ 'docker.io', 'kubelet', 'kubeadm', 'kubectl', 'kubernetes-cni']
+
+    - name: Execute init script
+      script: "{{ playbook_dir }}/joinfiles/kubeadm_join.sh"
